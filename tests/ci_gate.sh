@@ -24,6 +24,17 @@ else
     AGENT_TEST=./ds4_agent_test_cpu
 fi
 
+# CI_SANITIZE=1 builds with ASan and UBSan instead of the release flags:
+# -O1 keeps reports readable, and -ffast-math is left out because UBSan
+# checks float conversions it would make undefined. The sanitizers go in CC
+# so that rules with hand-written flags are instrumented too.
+if [ "${CI_SANITIZE:-}" = 1 ]; then
+    if [ "$(uname -s)" = Darwin ]; then native=-mcpu=native; else native=-march=native; fi
+    export CC="${CC:-cc} -fsanitize=address,undefined -fno-sanitize-recover=undefined"
+    export CFLAGS="-O1 -g -fno-omit-frame-pointer $native -Wall -Wextra -std=c99"
+    export UBSAN_OPTIONS=print_stacktrace=1
+fi
+
 build_all() {
     # Objects that are already built emit no warnings and would pass unchecked.
     if compgen -G '*.o' >/dev/null || compgen -G 'tests/*.o' >/dev/null; then
