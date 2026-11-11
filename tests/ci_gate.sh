@@ -49,7 +49,9 @@ build_all() {
     make -j"$jobs" tests/test_web_recovery $UNIT_TESTS 2>&1 | tee -a "$log"
 
     # Only build output counts: some tests print runtime warnings on purpose.
-    if grep -E 'warning( #[0-9]+)?:' "$log"; then
+    # Sanitized builds skip the check: the release jobs gate warnings at the
+    # real flags, and -O1 makes gcc report value-range warnings they do not.
+    if [ "${CI_SANITIZE:-}" != 1 ] && grep -E 'warning( #[0-9]+)?:' "$log"; then
         echo "ci_gate: compiler warnings are build failures" >&2
         exit 1
     fi
