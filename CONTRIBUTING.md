@@ -20,6 +20,18 @@ make clean
 tests/ci_gate.sh
 ```
 
+A Linux job also runs the same tests under ASan and UBSan, including the JPEG
+decoder comparison. To reproduce it, or to check a memory bug locally:
+
+```sh
+make clean
+CI_SANITIZE=1 tests/ci_gate.sh
+CI_SANITIZE=1 tests/ci_gate.sh jpeg    # needs uv
+```
+
+Reports are collected in files and fail the run even when a test expects a
+failing exit status. Compiler warnings are checked in the regular jobs.
+
 The gate does not replace the tests below: it covers no inference, GPU kernels,
 speed, SSD streaming or distributed execution. Runner images and Python test
 dependencies are pinned in the workflow, so updating them is an explicit change.
