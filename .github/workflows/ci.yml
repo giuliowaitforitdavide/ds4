@@ -32,14 +32,24 @@ jobs:
         run: git diff --check "$(git merge-base "origin/${GITHUB_BASE_REF:-main}" HEAD)" HEAD -- ':!*.txt'
 
   gate:
+    name: gate (${{ matrix.os }}${{ matrix.sanitize && ', asan+ubsan' || '' }})
     strategy:
       fail-fast: false
       matrix:
         # Runner images are pinned: zero warnings means a new compiler can
         # fail every PR, so image updates are explicit changes here.
-        os: [macos-26, ubuntu-26.04, ubuntu-26.04-arm]
+        include:
+          - os: macos-26
+          - os: ubuntu-26.04
+          - os: ubuntu-26.04-arm
+          # Same tests under ASan and UBSan. Linux only: it also has
+          # LeakSanitizer, and the tests exercise no macOS-specific code.
+          - os: ubuntu-26.04
+            sanitize: true
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
+    env:
+      CI_SANITIZE: ${{ matrix.sanitize && '1' || '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -55,4 +65,4 @@ jobs:
           version: 0.9.27
           enable-cache: false
       - name: Compare JPEG decoder with libjpeg
-        run: uv run --no-project --python 3.13 --with numpy==2.5.4 --with pillow==13.0.0 python -m unittest discover -s tests -p test_jpeg_decode.py
+        run: tests/ci_gate.sh jpeg
